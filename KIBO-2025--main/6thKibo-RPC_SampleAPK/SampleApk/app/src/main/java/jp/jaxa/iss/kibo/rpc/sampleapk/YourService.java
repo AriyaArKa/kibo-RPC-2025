@@ -60,10 +60,10 @@ public class YourService extends KiboRpcService {
         // Final position in front of astronaut
         Point p1 = new Point(11.143, -6.7607, 4.9654);
         Quaternion q1 = new Quaternion(0f, 0f, 0.707f, 0.707f);
-        moveAndDetect(p1, q1, 5);
+        moveAndDetect(p1, q1, 4);
 
-        // Blink lights / finish
-        api.reportRoundingCompletion();
+        // Take snapshot of target item held by astronaut
+        api.takeTargetItemSnapshot();
     }
 
     /**
@@ -102,16 +102,14 @@ public class YourService extends KiboRpcService {
         }
 
         // 5) Report counts via setAreaInfo(areaId, itemName, number)
-        int areaId = idx;
         for (Map.Entry<String,Integer> e : det.counts.entrySet()) {
             String itemName = e.getKey();
             int count       = e.getValue();
-            api.setAreaInfo(areaId, itemName, count);
-            Log.i(TAG, "Reported area " + areaId + ": " + itemName + " × " + count);
-            areaId++;
+            api.setAreaInfo(idx, itemName, count);
+            Log.i(TAG, "Reported area " + idx + ": " + itemName + " × " + count);
         }
 
-        // Optionally notify recognition
+        // Notify recognition
         api.notifyRecognitionItem();
     }
 
