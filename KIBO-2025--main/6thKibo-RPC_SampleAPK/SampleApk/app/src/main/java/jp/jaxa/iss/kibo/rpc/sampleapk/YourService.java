@@ -34,27 +34,30 @@ public class YourService extends KiboRpcService {
             {0,1f,0,0}
     };
 
+
     @Override
-    public void onCreate() {
-        super.onCreate();
+    protected void runPlan1() {
+        Log.d(TAG, "RUN1 start");
+
+
         try {
             detector = new Detector(getApplicationContext());
         } catch (IOException e) {
             Log.e(TAG, "Failed to init Detector", e);
         }
-    }
 
-    @Override
-    protected void runPlan1() {
         api.startMission();
 
         // Move through each area, capture and detect
         for (int i = 0; i < place.length; i++) {
+            Log.d(TAG, "Move through each area, capture and detect start");
+
             Point p = new Point(place[i][0], place[i][1], place[i][2]);
             Quaternion q = new Quaternion(
                     angle[i][0], angle[i][1], angle[i][2], angle[i][3]
             );
             moveAndDetect(p, q, i);
+            Log.d(TAG, "Move through each area, capture and detect success");
         }
 
         // Final position in front of astronaut
@@ -64,6 +67,8 @@ public class YourService extends KiboRpcService {
 
         // Take snapshot of target item held by astronaut
         api.takeTargetItemSnapshot();
+        Log.d(TAG, "RUN1 shesh");
+
     }
 
     /**
@@ -71,6 +76,7 @@ public class YourService extends KiboRpcService {
      * @param idx used both in filename and as areaId for reporting
      */
     private void moveAndDetect(Point point, Quaternion quat, int idx) {
+
         Log.i(TAG, "Moving to " + point);
         Result r = api.moveTo(point, quat, true);
         if (!r.hasSucceeded()) {
