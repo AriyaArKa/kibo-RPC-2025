@@ -64,6 +64,10 @@ public class YourService extends KiboRpcService {
         Point p1 = new Point(11.143, -6.7607, 4.9654);
         Quaternion q1 = new Quaternion(0f, 0f, 0.707f, 0.707f);
         moveAndDetect(p1, q1, 4);
+//=============================
+        api.reportRoundingCompletion();
+        //=========================
+        api.notifyRecognitionItem();
 
         // Take snapshot of target item held by astronaut
         api.takeTargetItemSnapshot();
@@ -115,8 +119,7 @@ public class YourService extends KiboRpcService {
             Log.i(TAG, "Reported area " + idx + ": " + itemName + " × " + count);
         }
 
-        // Notify recognition
-        api.notifyRecognitionItem();
+        
     }
 
     private void sleep(int ms) {
