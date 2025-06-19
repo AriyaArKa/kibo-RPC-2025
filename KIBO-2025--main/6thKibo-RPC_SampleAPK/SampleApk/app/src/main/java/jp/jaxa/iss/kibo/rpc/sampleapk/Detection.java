@@ -1,7 +1,7 @@
 // File: app/src/main/java/jp/jaxa/iss/kibo/rpc/sampleapk/Detection.java
 package jp.jaxa.iss.kibo.rpc.sampleapk;
 
-import android.graphics.RectF;
+        import android.graphics.RectF;
 
 /** Simple POJO representing one detected box + class + score. */
 public class Detection {

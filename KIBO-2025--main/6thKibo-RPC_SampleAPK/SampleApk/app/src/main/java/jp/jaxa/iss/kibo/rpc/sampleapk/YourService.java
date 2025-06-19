@@ -35,7 +35,6 @@ public class YourService extends KiboRpcService {
     };
 
 
-
     @Override
     protected void runPlan1() {
         Log.d(TAG, "RUN1 start");
@@ -65,6 +64,10 @@ public class YourService extends KiboRpcService {
         Point p1 = new Point(11.143, -6.7607, 4.9654);
         Quaternion q1 = new Quaternion(0f, 0f, 0.707f, 0.707f);
         moveAndDetect(p1, q1, 4);
+//=============================
+        api.reportRoundingCompletion();
+        //=========================
+        api.notifyRecognitionItem();
 
         // Take snapshot of target item held by astronaut
         api.takeTargetItemSnapshot();
@@ -100,7 +103,7 @@ public class YourService extends KiboRpcService {
         Detector.Result det = detector.detect(bmp);
 
         // 4) Log detections
-        for (Detection d : det.detections) {
+        for (Detector.Detection d : det.detections) {
             String lbl = detector.labels.get(d.classIdx);
             Log.i(TAG, String.format(
                     "→ %s @ [%.1f,%.1f→%.1f,%.1f] score=%.2f",
@@ -116,8 +119,7 @@ public class YourService extends KiboRpcService {
             Log.i(TAG, "Reported area " + idx + ": " + itemName + " × " + count);
         }
 
-        // Notify recognition
-        api.notifyRecognitionItem();
+
     }
 
     private void sleep(int ms) {
