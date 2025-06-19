@@ -374,7 +374,8 @@ public class DetectorMerged {
     private static final float INPUT_STANDARD_DEVIATION = 255f;
     private static final DataType INPUT_IMAGE_TYPE = DataType.FLOAT32;
     private static final DataType OUTPUT_IMAGE_TYPE = DataType.FLOAT32;
-    private static final float CONFIDENCE_THRESHOLD = 0.3f;
+    //private static final float CONFIDENCE_THRESHOLD = 0.3f;
+    private static final float CONFIDENCE_THRESHOLD = 0.4f;
     private static final float IOU_THRESHOLD = 0.5f;
 
     private ImageProcessor imageProcessor;
