@@ -3,6 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="jp.jaxa.iss.kibo.rpc.sampleapk">
 
+
+
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
 
