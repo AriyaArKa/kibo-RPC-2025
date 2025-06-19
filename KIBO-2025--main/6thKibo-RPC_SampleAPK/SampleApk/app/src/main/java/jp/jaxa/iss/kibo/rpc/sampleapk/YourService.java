@@ -119,7 +119,11 @@ public class YourService extends KiboRpcService {
             Log.i(TAG, "Reported area " + idx + ": " + itemName + " × " + count);
         }
 
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> 14e1f0cc74bef5e23daf1636f2e7c277b36d5a7b
     }
 
     private void sleep(int ms) {
