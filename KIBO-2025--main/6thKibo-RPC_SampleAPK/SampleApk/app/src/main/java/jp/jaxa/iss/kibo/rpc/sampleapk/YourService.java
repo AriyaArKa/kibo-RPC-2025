@@ -59,14 +59,14 @@ public class YourService extends KiboRpcService {
             Quaternion q = new Quaternion(
                     angle[i][0], angle[i][1], angle[i][2], angle[i][3]
             );
-            moveAndDetect(p, q, i);
+            moveAndDetect(p, q, i+1);
             Log.d(TAG, "Move through each area, capture and detect success");
         }
 
         // Final position in front of astronaut
         Point p1 = new Point(11.143, -6.7607, 4.9654);
         Quaternion q1 = new Quaternion(0f, 0f, 0.707f, 0.707f);
-        moveAndDetect(p1, q1, 4);
+        moveAndDetect(p1, q1, 5);
 //=============================
         api.reportRoundingCompletion();
         //=========================
@@ -120,10 +120,10 @@ public class YourService extends KiboRpcService {
         for (Map.Entry<String,Integer> e : det.counts.entrySet()) {
             String itemName = e.getKey();
             int count       = e.getValue();
-            api.setAreaInfo(idx, itemName, count);
             Log.i(TAG, "Reported area " + idx + ": " + itemName + " × " + count);
+            if (itemName.equals("emerald") || itemName.equals("diamond") || itemName.equals("crystal")) continue;
+            api.setAreaInfo(idx, itemName, count);
         }
-
 
     }
 
