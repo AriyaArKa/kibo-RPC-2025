@@ -156,6 +156,7 @@ package jp.jaxa.iss.kibo.rpc.sampleapk;
 
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
+import android.nfc.Tag;
 import android.util.Log;
 
 import gov.nasa.arc.astrobee.Result;
@@ -187,7 +188,7 @@ public class YourService extends KiboRpcService {
     private final double[][] place = {
             {10.95,-9.85,5.195},
             {10.925,-8.875,4.52},
-            {10.942,-7.75,4.51},
+            {10.942,-7.85,4.51},
             {10.6,-6.852,4.94}
     };
 
@@ -224,7 +225,7 @@ public class YourService extends KiboRpcService {
         );
         move(p, q, 1);
         Bitmap image=getImg(1);
-        sleep(50);
+        //sleep(50);
         detect(image,1);
         Log.i(TAG, "================Move through 1st area, capture and detect success======");
 
@@ -240,7 +241,7 @@ public class YourService extends KiboRpcService {
         );
         move(p1, q1, 2);
         Bitmap image1=getImg(2);
-        sleep(50);
+        //sleep(50);
         detect(image1,2);
         Log.i(TAG, "================Move through 2nd area, capture and detect success======");
 
@@ -256,7 +257,7 @@ public class YourService extends KiboRpcService {
         );
         move(p2, q2, 3);
         Bitmap image2=getImg(3);
-        sleep(50);
+        //sleep(50);
         detect(image2,3);
         Log.i(TAG, "================Move through 3rd area, capture and detect success======");
 
@@ -264,7 +265,7 @@ public class YourService extends KiboRpcService {
         /* **************************************************** */
         /* Let's move to 4 area and recognize the items. */
         /* **************************************************** */
-        Log.i(TAG, "Move through 3rd area, capture and detect start");
+        Log.i(TAG, "Move through 4th area, capture and detect start");
 
         Point p3 = new Point(place[3][0], place[3][1], place[3][2]);
         Quaternion q3 = new Quaternion(
@@ -272,9 +273,9 @@ public class YourService extends KiboRpcService {
         );
         move(p3, q3, 4);
         Bitmap image3=getImg(4);
-        sleep(50);
+        //sleep(50);
         detect(image3,4);
-        Log.i(TAG, "================Move through 3rd area, capture and detect success======");
+        Log.i(TAG, "================Move through 4th area, capture and detect success======");
 
 
         // Final position in front of astronaut
@@ -285,10 +286,19 @@ public class YourService extends KiboRpcService {
         //=============================
         api.reportRoundingCompletion();
         //===============================
-        sleep(2000);
+        sleep(2500);
         Bitmap image4=getImg(5);
         sleep(50);
         detect(image4,5);
+        int i=3;
+
+        while(!isTreasureItem(Treasure)&&i!=0) {
+            i--;
+                sleep(1000);
+                image4=getImg(5);
+                detect(image4,5);
+        }
+
         Integer Area = null; // Use Integer instead of int to allow null checking
         HashMap<Object, Object> treasureData = gemMap.get(Treasure);
 
@@ -315,6 +325,10 @@ public class YourService extends KiboRpcService {
         // Let's notify the astronaut when you recognize it.
         api.notifyRecognitionItem();
 
+        /* ******************************************************************************************************* */
+        /* Write your code to move Astrobee to the location of the target item (what the astronaut is looking for) */
+        /* ******************************************************************************************************* */
+
         if(Area!=null) {
             Point last = new Point(place[Area - 1][0], place[Area - 1][1], place[Area - 1][2]);
             Quaternion lastAngle = new Quaternion(
@@ -323,9 +337,6 @@ public class YourService extends KiboRpcService {
             move(last, lastAngle , 6);
         }
 
-        /* ******************************************************************************************************* */
-        /* Write your code to move Astrobee to the location of the target item (what the astronaut is looking for) */
-        /* ******************************************************************************************************* */
 
         // Take a snapshot of the target item.
         api.takeTargetItemSnapshot();
@@ -339,16 +350,33 @@ public class YourService extends KiboRpcService {
      * Moves, captures, runs detection, and reports via setAreaInfo.
      * @param idx used both in filename and as areaId for reporting
      */
-    private void move(Point point, Quaternion quat, int idx) {
+    private void move(Point point, Quaternion quaternion, int idx) {
+        Log.i("MOVE", "Attempting to move to, Point:" + point + "; Quaternion: "+quaternion);
 
-        Log.i(TAG, "Moving to " + point);
-        Result r = api.moveTo(point, quat, true);
-        if (!r.hasSucceeded()) {
-            Log.i(TAG, "Move failed idx=" + idx);
+        if(point == null || quaternion == null){
+            Log.d("MOVE", "Count not move, params are null");
             return;
         }
-        Log.i(TAG,"Move passed "+idx+" =========>>>>>>>>>>");
-        sleep(500);
+
+        int retryCount = 0;
+        Result result;
+        do {
+            result = api.moveTo(point, quaternion, true);
+
+            if(result.hasSucceeded()){
+                sleep(1000);
+
+                return;
+            }
+            retryCount++;
+
+            Log.d("MOVE","Move attempt :" + retryCount);
+
+            sleep(1000);
+        } while(!result.hasSucceeded() && retryCount < 3);
+
+        Log.d("MOVE", "Move to target failed");
+        return;
     }
 
 
@@ -369,7 +397,9 @@ public class YourService extends KiboRpcService {
         }
 
         boolean treasure=false;
-        String name = null,element = null;
+        boolean found=false;
+        String treasure_name = null,element = null;
+        int item_count=0;
 
         // 5) Report counts via setAreaInfo(areaId, itemName, number)
         for (Map.Entry<String,Integer> e : det.counts.entrySet()) {
@@ -378,19 +408,21 @@ public class YourService extends KiboRpcService {
             Log.i(TAG,"calling setAreaInfo ()^^^^^^^^^^^^^^^^^^");
             treasure=isTreasureItem(itemName);
             if(treasure){
-                name=itemName;
+                treasure_name=itemName;
+                found=true;
             }else{
                 element=itemName;
+                item_count=count;
             }
-            api.setAreaInfo(idx, itemName, count);
             Log.i(TAG, "Reported area " + idx + ": " + itemName + " × " + count);
         }
-        if(treasure&&name!=null&&idx!=5){
+        api.setAreaInfo(idx, element, item_count);
+        if(found&&treasure_name!=null&&idx!=5&&element != null){
             // Initialize the inner map if it doesn't exist for the given gem name (e.g., "diamond")
-            gemMap.putIfAbsent(name, new HashMap<>()); // This will only put the inner map if it doesn't exist
+            gemMap.putIfAbsent(treasure_name, new HashMap<>()); // This will only put the inner map if it doesn't exist
 
             // Now put the ID and element into the inner map
-            gemMap.get(name).put(idx, element);
+            gemMap.get(treasure_name).put(idx, element);
         }
         if(idx!=5){
             Landmark.put(idx,element);
@@ -398,7 +430,8 @@ public class YourService extends KiboRpcService {
         Log.i(TAG,"the map for id "+idx +" is=>=>=>=>=>=> " + String.valueOf(gemMap));
         Log.i(TAG,"====>>==>>>the LandMark element is "+String.valueOf(Landmark));
         if(idx==5){
-            Treasure=name;
+            Treasure=treasure_name;
+            Log.i(TAG,"treasure of astronaut is : "+Treasure);
         }
 
     }
@@ -420,7 +453,7 @@ public class YourService extends KiboRpcService {
 //        markerIds[i] = markerId.clone();
         Log.i(TAG,i+" no Marker ID is : "+markerId);
         Log.i(TAG,"marker id is >>>>>>>>>>>>>>>>> "+markerId.dump());
-        api.saveMatImage(image,"captured_raw_"+1+".jpg");
+        api.saveMatImage(image,"captured_raw_"+i+".jpg");
 
         //Get camera matrix
         Mat cameraMatrix=new Mat(3,3, CvType.CV_64F);
@@ -438,60 +471,60 @@ public class YourService extends KiboRpcService {
 
 
         // 6. Estimate pose (only if markers were found)
-        if (!markerId.empty()) {
-            Mat rvecs = new Mat();  // rotation vectors
-            Mat tvecs = new Mat();  // translation vectors
-
-            float markerLength = 0.05f; // meters (adjust based on your real marker size)
-
-            Aruco.estimatePoseSingleMarkers(corners, markerLength, cameraMatrix, cameraCoefficient, rvecs, tvecs);
-
-            for (int idx = 0; idx < markerId.rows(); idx++) {
-                // 7. Get position
-                double[] tvec = new double[3];
-                tvecs.get(idx, 0, tvec); // tx, ty, tz
-
-                // >>> ADDED: Calculate Euclidean distance
-                double distance = Math.sqrt(tvec[0]*tvec[0] + tvec[1]*tvec[1] + tvec[2]*tvec[2]);
-                Log.i(TAG, String.format("Marker real Tag %d -> Distance from camera: %.4f meters",
-                        (int) markerId.get(idx, 0)[0], distance));
-
-
-                // 8. Convert rotation vector to rotation matrix
-                Mat rvec = new Mat(1, 3, CvType.CV_64F);
-                rvecs.row(idx).copyTo(rvec);
-                Mat rotationMatrix = new Mat();
-                Calib3d.Rodrigues(rvec, rotationMatrix);
-
-                // >>> ADDED: Calculate angle of rotation (in degrees)
-                double[] rotVec = new double[3];
-                rvec.get(0, 0, rotVec);
-                double angleRad = Math.sqrt(rotVec[0]*rotVec[0] + rotVec[1]*rotVec[1] + rotVec[2]*rotVec[2]);
-                double angleDeg = Math.toDegrees(angleRad);
-                Log.i(TAG, String.format("Marker real Tag %d -> Rotation angle: %.2f degrees",
-                        (int) markerId.get(idx, 0)[0], angleDeg));
-
-                // 9. Convert rotation matrix to quaternion
-                double[] R = new double[9];
-                rotationMatrix.get(0, 0, R);
-                double r00 = R[0], r01 = R[1], r02 = R[2];
-                double r10 = R[3], r11 = R[4], r12 = R[5];
-                double r20 = R[6], r21 = R[7], r22 = R[8];
-
-                double qw = Math.sqrt(1.0 + r00 + r11 + r22) / 2.0;
-                double qx = (r21 - r12) / (4.0 * qw);
-                double qy = (r02 - r20) / (4.0 * qw);
-                double qz = (r10 - r01) / (4.0 * qw);
-
-                // 10. Log position and orientation (quaternion)
-                Log.i(TAG, String.format("Marker real Tag %d -> Position (x,y,z): [%.4f, %.4f, %.4f]",
-                        (int) markerId.get(idx, 0)[0], tvec[0], tvec[1], tvec[2]));
-                Log.i(TAG, String.format("Marker real Tag %d -> Quaternion (x,y,z,w): [%.4f, %.4f, %.4f, %.4f]",
-                        (int) markerId.get(idx, 0)[0], qx, qy, qz, qw));
-            }
-        } else {
-            Log.i(TAG, "No marker detected.");
-        }
+//        if (!markerId.empty()) {
+//            Mat rvecs = new Mat();  // rotation vectors
+//            Mat tvecs = new Mat();  // translation vectors
+//
+//            float markerLength = 0.05f; // meters (adjust based on your real marker size)
+//
+//            Aruco.estimatePoseSingleMarkers(corners, markerLength, cameraMatrix, cameraCoefficient, rvecs, tvecs);
+//
+//            for (int idx = 0; idx < markerId.rows(); idx++) {
+//                // 7. Get position
+//                double[] tvec = new double[3];
+//                tvecs.get(idx, 0, tvec); // tx, ty, tz
+//
+//                // >>> ADDED: Calculate Euclidean distance
+//                double distance = Math.sqrt(tvec[0]*tvec[0] + tvec[1]*tvec[1] + tvec[2]*tvec[2]);
+//                Log.i(TAG, String.format("Marker real Tag %d -> Distance from camera: %.4f meters",
+//                        (int) markerId.get(idx, 0)[0], distance));
+//
+//
+//                // 8. Convert rotation vector to rotation matrix
+//                Mat rvec = new Mat(1, 3, CvType.CV_64F);
+//                rvecs.row(idx).copyTo(rvec);
+//                Mat rotationMatrix = new Mat();
+//                Calib3d.Rodrigues(rvec, rotationMatrix);
+//
+//                // >>> ADDED: Calculate angle of rotation (in degrees)
+//                double[] rotVec = new double[3];
+//                rvec.get(0, 0, rotVec);
+//                double angleRad = Math.sqrt(rotVec[0]*rotVec[0] + rotVec[1]*rotVec[1] + rotVec[2]*rotVec[2]);
+//                double angleDeg = Math.toDegrees(angleRad);
+//                Log.i(TAG, String.format("Marker real Tag %d -> Rotation angle: %.2f degrees",
+//                        (int) markerId.get(idx, 0)[0], angleDeg));
+//
+//                // 9. Convert rotation matrix to quaternion
+//                double[] R = new double[9];
+//                rotationMatrix.get(0, 0, R);
+//                double r00 = R[0], r01 = R[1], r02 = R[2];
+//                double r10 = R[3], r11 = R[4], r12 = R[5];
+//                double r20 = R[6], r21 = R[7], r22 = R[8];
+//
+//                double qw = Math.sqrt(1.0 + r00 + r11 + r22) / 2.0;
+//                double qx = (r21 - r12) / (4.0 * qw);
+//                double qy = (r02 - r20) / (4.0 * qw);
+//                double qz = (r10 - r01) / (4.0 * qw);
+//
+//                // 10. Log position and orientation (quaternion)
+//                Log.i(TAG, String.format("Marker real Tag %d -> Position (x,y,z): [%.4f, %.4f, %.4f]",
+//                        (int) markerId.get(idx, 0)[0], tvec[0], tvec[1], tvec[2]));
+//                Log.i(TAG, String.format("Marker real Tag %d -> Quaternion (x,y,z,w): [%.4f, %.4f, %.4f, %.4f]",
+//                        (int) markerId.get(idx, 0)[0], qx, qy, qz, qw));
+//            }
+//        } else {
+//            Log.i(TAG, "No marker detected.");
+//        }
 
 
         Mat rgb = new Mat();
@@ -504,9 +537,15 @@ public class YourService extends KiboRpcService {
         return bitmap;
     }
 
-    private void sleep(int ms) {
-        try { Thread.sleep(ms); }
-        catch (InterruptedException ignored) {}
+    private void sleep(int milliseconds) {
+        Log.d("WAIT", "Pausing for: "+milliseconds+"ms");
+        try{
+            Thread.sleep(milliseconds);
+        }catch (InterruptedException e){
+            Log.d("WAIT", "Error Pausing for: "+milliseconds+"ms");
+            e.printStackTrace();
+        }
+        return;
     }
 
     @Override
