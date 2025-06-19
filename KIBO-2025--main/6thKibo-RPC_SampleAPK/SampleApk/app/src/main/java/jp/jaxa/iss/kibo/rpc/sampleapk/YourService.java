@@ -18,7 +18,8 @@ import java.util.Map;
 
 public class YourService extends KiboRpcService {
     private static final String TAG = "YourService";
-    private Detector detector;
+    //    private Detector detector;
+    private DetectorMerged detectorMerged;
 
     private final double[][] place = {
             {10.95,-9.85,5.195},
@@ -40,11 +41,13 @@ public class YourService extends KiboRpcService {
         Log.d(TAG, "RUN1 start");
 
 
-        try {
-            detector = new Detector(getApplicationContext());
-        } catch (IOException e) {
-            Log.e(TAG, "Failed to init Detector", e);
-        }
+//        try {
+//            detector = new Detector(getApplicationContext());
+//        } catch (IOException e) {
+//            Log.e(TAG, "Failed to init Detector", e);
+//        }
+
+        detectorMerged = new DetectorMerged(this, "best_float32.tflite", "labelmap.txt");
 
         api.startMission();
 
@@ -91,6 +94,7 @@ public class YourService extends KiboRpcService {
 
         // 1) Capture NavCam Mat
         Mat mat = api.getMatNavCam();
+        Log.i(TAG, "Captured Mat size: " + mat.rows() + "x" + mat.cols());
         sleep(10);
 
         // 2) Save raw image for debugging
@@ -100,14 +104,15 @@ public class YourService extends KiboRpcService {
 
         // 3) Convert to Bitmap and detect
         Bitmap bmp = matToBitmap(mat);
-        Detector.Result det = detector.detect(bmp);
+        Log.i(TAG, "Converted Bitmap size: " + bmp.getWidth() + "x" + bmp.getHeight());
+        DetectorMerged.Result det = detectorMerged.detect(bmp);
 
         // 4) Log detections
-        for (Detector.Detection d : det.detections) {
-            String lbl = detector.labels.get(d.classIdx);
+        for (BoundingBox d : det.detections) {
+            String lbl = detectorMerged.labels.get(d.cls);
             Log.i(TAG, String.format(
                     "→ %s @ [%.1f,%.1f→%.1f,%.1f] score=%.2f",
-                    lbl, d.box.left, d.box.top, d.box.right, d.box.bottom, d.score
+                    lbl, d.x1, d.y1, d.x2, d.y2, d.cnf
             ));
         }
 
@@ -119,11 +124,7 @@ public class YourService extends KiboRpcService {
             Log.i(TAG, "Reported area " + idx + ": " + itemName + " × " + count);
         }
 
-<<<<<<< HEAD
 
-=======
-        
->>>>>>> 14e1f0cc74bef5e23daf1636f2e7c277b36d5a7b
     }
 
     private void sleep(int ms) {
@@ -133,7 +134,7 @@ public class YourService extends KiboRpcService {
 
     @Override
     public void onDestroy() {
-        if (detector != null) detector.close();
+        if (detectorMerged != null) detectorMerged.close();
         super.onDestroy();
     }
 
