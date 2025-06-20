@@ -1,5 +1,6 @@
 package com.example.myapplicationenum;
 
+
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.os.SystemClock;
@@ -15,9 +16,15 @@ import org.tensorflow.lite.support.tensorbuffer.TensorBuffer;
 import org.tensorflow.lite.support.common.FileUtil;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.RandomAccessFile;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 import java.util.*;
 
 
@@ -58,35 +65,73 @@ public class DetectorMerged {
         options.setNumThreads(4);
 
         try {
-            interpreter = new Interpreter(FileUtil.loadMappedFile(context, modelPath), options);
-
-            int[] inputShape = interpreter.getInputTensor(0).shape();
-            int[] outputShape = interpreter.getOutputTensor(0).shape();
-
-            tensorWidth = inputShape[1];
-            tensorHeight = inputShape[2];
-            if (inputShape[1] == 3) {
-                tensorWidth = inputShape[2];
-                tensorHeight = inputShape[3];
-            }
-
-            numChannel = outputShape[1];
-            numElements = outputShape[2];
-
-            InputStream inputStream = context.getAssets().open(labelPath);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-
-            String line;
-            while ((line = reader.readLine()) != null && !line.isEmpty()) {
-                labels.add(line);
-            }
-
-            reader.close();
-            inputStream.close();
+//            interpreter = new Interpreter(FileUtil.loadMappedFile(context, modelPath), options);
+//
+//            int[] inputShape = interpreter.getInputTensor(0).shape();
+//            int[] outputShape = interpreter.getOutputTensor(0).shape();
+//
+//            tensorWidth = inputShape[1];
+//            tensorHeight = inputShape[2];
+//            if (inputShape[1] == 3) {
+//                tensorWidth = inputShape[2];
+//                tensorHeight = inputShape[3];
+//            }
+//
+//            numChannel = outputShape[1];
+//            numElements = outputShape[2];
+//
+//            InputStream inputStream = context.getAssets().open(labelPath);
+//            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+//
+//            String line;
+//            while ((line = reader.readLine()) != null && !line.isEmpty()) {
+//                labels.add(line);
+//            }
+//
+//            reader.close();
+//            inputStream.close();
+            loadModel(context, modelPath);
 
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private void loadModel(Context context, String modelPath) throws IOException {
+        MappedByteBuffer modelBuffer = loadModelFile(getFileFromAsset(context, modelPath));
+        interpreter = new Interpreter(modelBuffer);
+    }
+
+    private static MappedByteBuffer loadModelFile(File modelFile) throws IOException {
+        try (RandomAccessFile raf = new RandomAccessFile(modelFile, "r")) {
+            FileChannel channel = raf.getChannel();
+            return channel.map(FileChannel.MapMode.READ_ONLY, 0, channel.size());
+        }
+    }
+
+    private static File getFileFromAsset(Context context, String assetFileName) throws IOException {
+        // Get the directory where the file will be copied
+        File fileDir = context.getFilesDir();
+        File file = new File(fileDir, assetFileName);
+
+        // Check if the file already exists, if not, copy it from assets
+        if (!file.exists()) {
+            copyAssetFileToInternalStorage(context, assetFileName, file);
+        }
+        return file;
+    }
+
+    private static void copyAssetFileToInternalStorage(Context context, String assetFileName, File outFile) throws IOException {
+        InputStream in = context.getAssets().open(assetFileName);
+        OutputStream out = new FileOutputStream(outFile);
+        byte[] buffer = new byte[1024];
+        int read;
+        while ((read = in.read(buffer)) != -1) {
+            out.write(buffer, 0, read);
+        }
+        in.close();
+        out.flush();
+        out.close();
     }
 
     public void restart(boolean isGpu) {
@@ -262,8 +307,8 @@ public class DetectorMerged {
         public Result(List<BoundingBox> detections, Map<String, Integer> counts) {
             this.detections = detections;
             this.counts = counts;
-        }
+   }
 
 
-    }
+}
 }
