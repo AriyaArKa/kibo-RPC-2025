@@ -190,7 +190,7 @@ public class YourService extends KiboRpcService {
     private final double[][] place = {
             {10.95,-9.85,5.195},
             {10.925,-8.875,4.52},
-            {10.942,-7.75,4.51},
+            {10.942,-7.85,4.51},
             {10.6,-6.852,4.94}
     };
 
@@ -310,9 +310,11 @@ public class YourService extends KiboRpcService {
 
         while(!isTreasureItem(Treasure)&&i!=0) {
             i--;
-            sleep(1000);
-            image4=getImg(5);
-            detect(image4,5);
+
+                sleep(1000);
+                image4=getImg(5);
+                detect(image4,5);
+
         }
 
         Integer Area = null; // Use Integer instead of int to allow null checking
@@ -354,7 +356,9 @@ public class YourService extends KiboRpcService {
             move(last, lastAngle , 6);
         }
 
-        sleep(2000);
+
+
+
         // Take a snapshot of the target item.
         api.takeTargetItemSnapshot();
 
