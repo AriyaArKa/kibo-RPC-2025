@@ -185,6 +185,8 @@ public class YourService extends KiboRpcService {
     private String Treasure;
     Map<Integer,String>Landmark=new HashMap<>();
 
+    ArrayList<Mat> markerIDs = new ArrayList<Mat>(4);
+
     private final double[][] place = {
             {10.95,-9.85,5.195},
             {10.925,-8.875,4.52},
@@ -197,6 +199,20 @@ public class YourService extends KiboRpcService {
             {-0.0923f,0.7002f,-0.0923f,0.7002f},
             {0.1651f,0.6876f,0.1651f,0.6876f},
             {0,1f,0,0}
+    };
+
+    private final double[][] final_place = {
+            {10.95,-9.85,5.195},  // 10.95, -10.58+x, 5.195
+            {10.925,-8.875,4.50}, // 10.925, -8.875, 3.76203+x
+            {10.925,-7.925,4.50}, // 10.925, -7.925, 3.76093+x
+            {10.6,-6.852,4.94}    // 9.866984+x, -6.8525, 4.945
+    };
+
+    private final float[][] final_angle = {
+            {0,0,-0.707f,0.707f},
+            {0f,0.707f,0,0.707f},
+            {0f,0.707f,0f,0.707f},
+            {0,0f,-1.0f,0}
     };
 
 
@@ -294,9 +310,11 @@ public class YourService extends KiboRpcService {
 
         while(!isTreasureItem(Treasure)&&i!=0) {
             i--;
+
                 sleep(1000);
                 image4=getImg(5);
                 detect(image4,5);
+
         }
 
         Integer Area = null; // Use Integer instead of int to allow null checking
@@ -330,12 +348,15 @@ public class YourService extends KiboRpcService {
         /* ******************************************************************************************************* */
 
         if(Area!=null) {
-            Point last = new Point(place[Area - 1][0], place[Area - 1][1], place[Area - 1][2]);
+            Point last = new Point(final_place[Area - 1][0], final_place[Area - 1][1], final_place[Area - 1][2]);
+
             Quaternion lastAngle = new Quaternion(
-                    angle[Area - 1][0], angle[Area - 1][1], angle[Area - 1][2], angle[Area - 1][3]
+                    final_angle[Area - 1][0], final_angle[Area - 1][1], final_angle[Area - 1][2], final_angle[Area - 1][3]
             );
             move(last, lastAngle , 6);
         }
+
+
 
 
         // Take a snapshot of the target item.
@@ -449,6 +470,7 @@ public class YourService extends KiboRpcService {
         List<Mat> corners=new ArrayList<>();
         Mat markerId=new Mat();
         Aruco.detectMarkers(image,dictionary,corners,markerId);
+        if (markerId != null) markerIDs.add(i, markerId);
 //        markerIds[i]=new Mat();
 //        markerIds[i] = markerId.clone();
         Log.i(TAG,i+" no Marker ID is : "+markerId);
